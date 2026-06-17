@@ -14,7 +14,7 @@ let todos = [];
 let nextId = 1;
 
 // Helper: mô phỏng async delay
-const delay = (ms = 200) => new Promise(resolve => setTimeout(resolve, ms));
+const delay = (ms = 200) => new Promise((resolve) => setTimeout(resolve, ms));
 
 // ============================================================
 // Core functions - TODO: implement tất cả
@@ -26,11 +26,34 @@ const delay = (ms = 200) => new Promise(resolve => setTimeout(resolve, ms));
  * @param {"low"|"medium"|"high"} priority - Độ ưu tiên
  * @returns {Promise<Object>} Todo vừa tạo
  */
-async function addTodo(title, priority = "medium") {
+async function addTodo(title, priority = 'medium') {
   // TODO: validate input (title không được rỗng, priority phải hợp lệ)
   // TODO: tạo todo object với: id, title, priority, completed: false, createdAt: new Date()
   // TODO: push vào mảng todos
   // TODO: return todo vừa tạo
+  await delay();
+
+  const priorities = ['low', 'medium', 'high'];
+
+  if (!title || !title.trim()) {
+    throw new Error('Title is required');
+  }
+
+  if (!priorities.includes(priority)) {
+    throw new Error('Invalid priority');
+  }
+
+  const todo = {
+    id: nextId++,
+    title: title.trim(),
+    priority,
+    completed: false,
+    createAt: new Date(),
+  };
+
+  todos.push(todo);
+  await saveTodos();
+  return todo;
 }
 
 /**
@@ -42,6 +65,15 @@ async function completeTodo(id) {
   // TODO: tìm todo theo id, throw Error nếu không tìm thấy
   // TODO: set completed = true
   // TODO: return todo đã update
+  await delay();
+
+  const todo = todos.find((t) => t.id === id);
+
+  if (!todo) throw new Error('Todo not found');
+
+  todo.completed = true;
+  await saveTodos();
+  return todo;
 }
 
 /**
@@ -54,6 +86,14 @@ async function deleteTodo(id) {
   // TODO: throw Error nếu không tìm thấy
   // TODO: xóa khỏi mảng dùng splice
   // TODO: return true
+  await delay();
+
+  const index = todos.findIndex((t) => t.id === id);
+  if (index === -1) throw new Error('Todo not found');
+
+  todos.splice(index, 1);
+  await saveTodos();
+  return true;
 }
 
 /**
@@ -61,11 +101,24 @@ async function deleteTodo(id) {
  * @param {"all"|"active"|"completed"} filter
  * @returns {Promise<Array>} Danh sách todos
  */
-async function listTodos(filter = "all") {
+async function listTodos(filter = 'all') {
   // TODO: dựa vào filter, trả về:
   // "all" -> tất cả
   // "active" -> chưa hoàn thành
   // "completed" -> đã hoàn thành
+
+  await delay();
+
+  switch (filter) {
+    case 'active':
+      return todos.filter((t) => !t.completed);
+    case 'completed':
+      return todos.filter((t) => t.completed);
+    case 'all':
+      return [...todos];
+    default:
+      throw new Error('Invalid filter');
+  }
 }
 
 /**
@@ -75,6 +128,11 @@ async function listTodos(filter = "all") {
  */
 async function searchTodos(keyword) {
   // TODO: tìm todos có title chứa keyword (case-insensitive)
+  await delay();
+
+  const search = keyword.toLowerCase();
+
+  return todos.filter((t) => t.title.toLowerCase().includes(search));
 }
 
 // ============================================================
@@ -82,8 +140,8 @@ async function searchTodos(keyword) {
 // ============================================================
 
 function displayTodo(todo) {
-  const status = todo.completed ? "[x]" : "[ ]";
-  const priority = { low: "LOW ", medium: "MED ", high: "HIGH" }[todo.priority];
+  const status = todo.completed ? '[x]' : '[ ]';
+  const priority = { low: 'LOW ', medium: 'MED ', high: 'HIGH' }[todo.priority];
   console.log(`  ${status} [${priority}] #${todo.id} - ${todo.title}`);
 }
 
@@ -92,56 +150,57 @@ function displayTodo(todo) {
 // ============================================================
 
 async function main() {
-  console.log("=== TODO APP ===\n");
+  await loadTodos();
+  console.log('=== TODO APP ===\n');
 
   // Thêm todos
-  console.log("Adding todos...");
-  await addTodo("Học JavaScript cơ bản", "high");
-  await addTodo("Đọc tài liệu Node.js", "high");
-  await addTodo("Làm bài tập async/await", "medium");
-  await addTodo("Setup VS Code extensions", "low");
-  await addTodo("Push code lên GitHub", "medium");
+  console.log('Adding todos...');
+  await addTodo('Học JavaScript cơ bản', 'high');
+  await addTodo('Đọc tài liệu Node.js', 'high');
+  await addTodo('Làm bài tập async/await', 'medium');
+  await addTodo('Setup VS Code extensions', 'low');
+  await addTodo('Push code lên GitHub', 'medium');
 
   // Liệt kê tất cả
-  console.log("\nAll todos:");
-  const all = await listTodos("all");
+  console.log('\nAll todos:');
+  const all = await listTodos('all');
   all.forEach(displayTodo);
 
   // Hoàn thành một todo
-  console.log("\nCompleting todo #1...");
+  console.log('\nCompleting todo #1...');
   await completeTodo(1);
 
   // Liệt kê active
-  console.log("\nActive todos:");
-  const active = await listTodos("active");
+  console.log('\nActive todos:');
+  const active = await listTodos('active');
   active.forEach(displayTodo);
 
   // Tìm kiếm
   console.log("\nSearch 'node':");
-  const results = await searchTodos("node");
+  const results = await searchTodos('node');
   results.forEach(displayTodo);
 
   // Xóa todo
-  console.log("\nDeleting todo #4...");
+  console.log('\nDeleting todo #4...');
   await deleteTodo(4);
 
   // Liệt kê tất cả sau khi xóa
-  console.log("\nAll todos after delete:");
-  const remaining = await listTodos("all");
+  console.log('\nAll todos after delete:');
+  const remaining = await listTodos('all');
   remaining.forEach(displayTodo);
 
   // Test error handling
-  console.log("\nTesting error handling...");
+  console.log('\nTesting error handling...');
   try {
     await completeTodo(999);
   } catch (err) {
-    console.log("Expected error:", err.message);
+    console.log('Expected error:', err.message);
   }
 
   try {
-    await addTodo("", "high");
+    await addTodo('', 'high');
   } catch (err) {
-    console.log("Expected error:", err.message);
+    console.log('Expected error:', err.message);
   }
 }
 
@@ -151,19 +210,25 @@ main().catch(console.error);
 // BONUS: Lưu/đọc từ file JSON (nếu làm xong phần trên)
 // ============================================================
 
-// const fs = require("fs").promises;
-// const DATA_FILE = path.join(__dirname, "todos.json");
+const path = require('path');
+const fs = require("fs").promises;
 
-// async function saveTodos() {
-//   await fs.writeFile(DATA_FILE, JSON.stringify(todos, null, 2));
-// }
+const DATA_FILE = path.join(__dirname, "todos.json");
 
-// async function loadTodos() {
-//   try {
-//     const data = await fs.readFile(DATA_FILE, "utf-8");
-//     todos = JSON.parse(data);
-//     nextId = todos.length > 0 ? Math.max(...todos.map(t => t.id)) + 1 : 1;
-//   } catch {
-//     todos = []; // file chưa tồn tại, bắt đầu với mảng rỗng
-//   }
-// }
+async function saveTodos() {
+  await fs.writeFile(DATA_FILE, JSON.stringify(todos, null, 2), 'utf8');
+}
+
+async function loadTodos() {
+  try {
+    const data = await fs.readFile(DATA_FILE, "utf-8");
+    // todos = JSON.parse(data);
+    todos = JSON.parse(data).map((todo) => ({
+      ...todo,
+      createdAt: new Date(todo.createdAt),
+    }));
+    nextId = todos.length > 0 ? Math.max(...todos.map(t => t.id)) + 1 : 1;
+  } catch {
+    todos = []; // file chưa tồn tại, bắt đầu với mảng rỗng
+  }
+}
