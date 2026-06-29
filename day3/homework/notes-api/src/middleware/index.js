@@ -6,6 +6,13 @@ const jwt = require('jsonwebtoken');
 function validate(schema, source = 'body') {
   return (req, res, next) => {
     // TODO: implement
+    const { error, value } = schema.validate(req[source], { abortEarly: false });
+    if (error) {
+      const err = new Error(error.details.map((d) => d.message).join(', '));
+      err.statusCode = 400;
+      return next(err);
+    }
+    req[source] = value;
     next();
   };
 }
@@ -18,7 +25,18 @@ function validate(schema, source = 'body') {
  */
 function authenticate(req, res, next) {
   // TODO: implement
-  res.status(401).json({ success: false, error: 'TODO: implement authenticate' });
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return res.status(401).json({ success: false, error: 'No token provided' });
+  }
+  const token = authHeader.slice(7);
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    req.user = decoded;
+    next();
+  } catch (err) {
+    return res.status(401).json({ success: false, error: 'Invalid or expired token' });
+  }
 }
 
 /**
@@ -27,6 +45,9 @@ function authenticate(req, res, next) {
 function authorize(...roles) {
   return (req, res, next) => {
     // TODO: implement
+    if (!roles.includes(req.user.role)) {
+      return res.status(403).json({ success: false, error: 'Forbidden' });
+    }
     next();
   };
 }

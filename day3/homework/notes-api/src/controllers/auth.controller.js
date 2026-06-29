@@ -9,7 +9,8 @@ const authService = require('../services/auth.service');
 async function register(req, res, next) {
   try {
     // TODO: implement
-    res.json({ message: 'TODO: implement register controller' });
+    const user = await authService.register(req.body);
+    res.status(201).json({ success: true, data: user });
   } catch (err) {
     next(err);
   }
@@ -24,7 +25,8 @@ async function register(req, res, next) {
 async function login(req, res, next) {
   try {
     // TODO: implement
-    res.json({ message: 'TODO: implement login controller' });
+    const data = await authService.login(req.body);
+    res.json({ success: true, data });
   } catch (err) {
     next(err);
   }

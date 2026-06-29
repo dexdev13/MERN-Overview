@@ -11,7 +11,8 @@ const notesService = require('../services/notes.service');
 async function getMyNotes(req, res, next) {
   try {
     // TODO: implement
-    res.json({ message: 'TODO: implement getMyNotes' });
+    const notes = await notesService.getUserNotes(req.user.userId, req.query);
+    res.json({ success: true, data: notes, total: notes.length });
   } catch (err) {
     next(err);
   }
@@ -27,7 +28,8 @@ async function getMyNotes(req, res, next) {
 async function getNoteById(req, res, next) {
   try {
     // TODO: implement
-    res.json({ message: 'TODO: implement getNoteById' });
+    const note = await notesService.getNoteById(req.params.id, req.user.userId);
+    res.json({ success: true, data: note });
   } catch (err) {
     next(err);
   }
@@ -42,7 +44,8 @@ async function getNoteById(req, res, next) {
 async function createNote(req, res, next) {
   try {
     // TODO: implement
-    res.json({ message: 'TODO: implement createNote' });
+    const note = await notesService.createNote({ userId: req.user.userId, ...req.body });
+    res.status(201).json({ success: true, data: note, message: 'Note created successfully' });
   } catch (err) {
     next(err);
   }
@@ -57,7 +60,8 @@ async function createNote(req, res, next) {
 async function updateNote(req, res, next) {
   try {
     // TODO: implement
-    res.json({ message: 'TODO: implement updateNote' });
+    const note = await notesService.updateNote(req.params.id, req.body, req.user.userId);
+    res.json({ success: true, data: note, message: 'Note updated' });
   } catch (err) {
     next(err);
   }
@@ -72,7 +76,8 @@ async function updateNote(req, res, next) {
 async function deleteNote(req, res, next) {
   try {
     // TODO: implement
-    res.json({ message: 'TODO: implement deleteNote' });
+    await notesService.deleteNote(req.params.id, req.user.userId);
+    res.json({ success: true, message: 'Note deleted' });
   } catch (err) {
     next(err);
   }
@@ -87,7 +92,8 @@ async function deleteNote(req, res, next) {
 async function getAllNotes(req, res, next) {
   try {
     // TODO: implement
-    res.json({ message: 'TODO: implement getAllNotes (admin)' });
+    const notes = await notesService.getAllNotes(req.query);
+    res.json({ success: true, data: notes, total: notes.length });
   } catch (err) {
     next(err);
   }

@@ -13,7 +13,16 @@ const store = require('../data/store');
  */
 async function register({ name, email, password }) {
   // TODO: implement
-  throw new Error('TODO: implement register');
+  const existing = store.users.findByEmail(email);
+  if (existing) {
+    const err = new Error('Email already in use');
+    err.statusCode = 409;
+    throw err;
+  }
+  const hashedPassword = await bcrypt.hash(password, 10);
+  const user = store.users.create({ name, email, hashedPassword });
+  const { password: _, ...userWithoutPassword } = user;
+  return userWithoutPassword;
 }
 
 /**
@@ -30,7 +39,18 @@ async function register({ name, email, password }) {
  */
 async function login({ email, password }) {
   // TODO: implement
-  throw new Error('TODO: implement login');
+  const user = store.users.findByEmail(email);
+  const err = new Error('Invalid email or password');
+  err.statusCode = 401;
+  if (!user) throw err;
+  const valid = await bcrypt.compare(password, user.password);
+  if (!valid) throw err;
+  const token = jwt.sign(
+    { userId: user.id, email: user.email, role: user.role },
+    process.env.JWT_SECRET,
+    { expiresIn: process.env.JWT_EXPIRES_IN || '1h' },
+  );
+  return { token, expiresIn: '1h' };
 }
 
 module.exports = { register, login };

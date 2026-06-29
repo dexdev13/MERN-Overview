@@ -15,32 +15,40 @@ let nextNoteId = 1;
 
 const users_findByEmail = (email) => {
   // TODO: trả về user có email tương ứng, hoặc undefined
-  return undefined;
+  return users.find((u) => u.email === email);
 };
 
 const users_findById = (id) => {
   // TODO: trả về user có id tương ứng, hoặc undefined
-  return undefined;
+  return users.find((u) => u.id === id);
 };
 
 const users_create = ({ name, email, hashedPassword, role = 'user' }) => {
   // TODO: tạo user mới, push vào array, return user (bao gồm password hash)
-  return null;
+  const user = { id: nextUserId++, name, email, password: hashedPassword, role };
+  users.push(user);
+  return user;
 };
 
 const users_update = (id, data) => {
   // TODO: update user theo id, return user đã update hoặc null
-  return null;
+  const idx = users.findIndex((u) => u.id === id);
+  if (idx === -1) return null;
+  users[idx] = { ...users[idx], ...data };
+  return users[idx];
 };
 
 const users_getAll = () => {
   // TODO: return tất cả users
-  return [];
+  return users;
 };
 
 const users_remove = (id) => {
   // TODO: xóa user theo id, return true/false
-  return false;
+  const idx = users.findIndex((u) => u.id === id);
+  if (idx === -1) return false;
+  users.splice(idx, 1);
+  return true;
 };
 
 // ---- Notes ----
@@ -48,27 +56,46 @@ const users_remove = (id) => {
 const notes_getAll = (filter = {}) => {
   // TODO: return notes theo filter
   // filter có thể có: userId (chỉ lấy notes của user đó), tag (lọc theo tag)
-  return [];
+  let result = notes;
+  if (filter.userId !== undefined) result = result.filter((n) => n.userId === filter.userId);
+  if (filter.tag) result = result.filter((n) => n.tags.includes(filter.tag));
+  return result;
 };
 
 const notes_findById = (id) => {
   // TODO: trả về note hoặc undefined
-  return undefined;
+  return notes.find((n) => n.id === id);
 };
 
 const notes_create = ({ userId, title, content, tags = [] }) => {
   // TODO: tạo note mới với: id, userId, title, content, tags, createdAt, updatedAt
-  return null;
+  const note = {
+    id: nextNoteId++,
+    userId,
+    title,
+    content,
+    tags,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  };
+  notes.push(note);
+  return note;
 };
 
 const notes_update = (id, data) => {
   // TODO: update note, set updatedAt: new Date(), return note đã update hoặc null
-  return null;
+  const idx = notes.findIndex((n) => n.id === id);
+  if (idx === -1) return null;
+  notes[idx] = { ...notes[idx], ...data, updatedAt: new Date() };
+  return notes[idx];
 };
 
 const notes_remove = (id) => {
   // TODO: xóa note, return true/false
-  return false;
+  const idx = notes.findIndex((n) => n.id === id);
+  if (idx === -1) return false;
+  notes.splice(idx, 1);
+  return true;
 };
 
 // Seed admin khi import lần đầu (gọi từ app startup)

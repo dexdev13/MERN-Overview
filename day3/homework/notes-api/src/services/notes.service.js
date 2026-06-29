@@ -9,7 +9,14 @@ const store = require('../data/store');
  */
 async function getUserNotes(userId, filter = {}) {
   // TODO: implement
-  return [];
+  let notes = store.notes.getAll({ userId, ...filter });
+  if (filter.q) {
+    const q = filter.q.toLowerCase();
+    notes = notes.filter(
+      (n) => n.title.toLowerCase().includes(q) || n.content.toLowerCase().includes(q),
+    );
+  }
+  return notes;
 }
 
 /**
@@ -21,7 +28,7 @@ async function getUserNotes(userId, filter = {}) {
  */
 async function getAllNotes(filter = {}) {
   // TODO: implement
-  return [];
+  return store.notes.getAll(filter);
 }
 
 /**
@@ -36,7 +43,18 @@ async function getAllNotes(filter = {}) {
  */
 async function getNoteById(id, requestingUserId = null) {
   // TODO: implement
-  throw new Error('TODO: implement getNoteById');
+  const note = store.notes.findById(Number(id));
+  if (!note) {
+    const err = new Error('Note not found');
+    err.statusCode = 404;
+    throw err;
+  }
+  if (requestingUserId !== null && note.userId !== requestingUserId) {
+    const err = new Error('Not authorized to access this note');
+    err.statusCode = 403;
+    throw err;
+  }
+  return note;
 }
 
 /**
@@ -47,7 +65,7 @@ async function getNoteById(id, requestingUserId = null) {
  */
 async function createNote({ userId, title, content, tags }) {
   // TODO: implement
-  throw new Error('TODO: implement createNote');
+  return store.notes.create({ userId, title, content, tags });
 }
 
 /**
@@ -60,7 +78,18 @@ async function createNote({ userId, title, content, tags }) {
  */
 async function updateNote(id, data, requestingUserId) {
   // TODO: implement
-  throw new Error('TODO: implement updateNote');
+  const note = store.notes.findById(Number(id));
+  if (!note) {
+    const err = new Error('Note not found');
+    err.statusCode = 404;
+    throw err;
+  }
+  if (note.userId !== requestingUserId) {
+    const err = new Error('Not authorized to access this note');
+    err.statusCode = 403;
+    throw err;
+  }
+  return store.notes.update(Number(id), data);
 }
 
 /**
@@ -73,7 +102,19 @@ async function updateNote(id, data, requestingUserId) {
  */
 async function deleteNote(id, requestingUserId) {
   // TODO: implement
-  throw new Error('TODO: implement deleteNote');
+  const note = store.notes.findById(Number(id));
+  if (!note) {
+    const err = new Error('Note not found');
+    err.statusCode = 404;
+    throw err;
+  }
+  if (note.userId !== requestingUserId) {
+    const err = new Error('Not authorized to access this note');
+    err.statusCode = 403;
+    throw err;
+  }
+  store.notes.remove(Number(id));
+  return true;
 }
 
 module.exports = {
