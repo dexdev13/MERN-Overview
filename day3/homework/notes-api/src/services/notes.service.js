@@ -1,4 +1,4 @@
-const store = require("../data/store");
+const store = require('../data/store');
 
 /**
  * TODO: Implement getUserNotes(userId, filter)
@@ -36,7 +36,7 @@ async function getAllNotes(filter = {}) {
  */
 async function getNoteById(id, requestingUserId = null) {
   // TODO: implement
-  throw new Error("TODO: implement getNoteById");
+  throw new Error('TODO: implement getNoteById');
 }
 
 /**
@@ -47,7 +47,7 @@ async function getNoteById(id, requestingUserId = null) {
  */
 async function createNote({ userId, title, content, tags }) {
   // TODO: implement
-  throw new Error("TODO: implement createNote");
+  throw new Error('TODO: implement createNote');
 }
 
 /**
@@ -60,7 +60,7 @@ async function createNote({ userId, title, content, tags }) {
  */
 async function updateNote(id, data, requestingUserId) {
   // TODO: implement
-  throw new Error("TODO: implement updateNote");
+  throw new Error('TODO: implement updateNote');
 }
 
 /**
@@ -73,7 +73,7 @@ async function updateNote(id, data, requestingUserId) {
  */
 async function deleteNote(id, requestingUserId) {
   // TODO: implement
-  throw new Error("TODO: implement deleteNote");
+  throw new Error('TODO: implement deleteNote');
 }
 
 module.exports = {

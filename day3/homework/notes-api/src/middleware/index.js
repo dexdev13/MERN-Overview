@@ -1,9 +1,9 @@
-const jwt = require("jsonwebtoken");
+const jwt = require('jsonwebtoken');
 
 /**
  * TODO: Implement validate middleware (copy từ bài tập 1)
  */
-function validate(schema, source = "body") {
+function validate(schema, source = 'body') {
   return (req, res, next) => {
     // TODO: implement
     next();
@@ -18,7 +18,7 @@ function validate(schema, source = "body") {
  */
 function authenticate(req, res, next) {
   // TODO: implement
-  res.status(401).json({ success: false, error: "TODO: implement authenticate" });
+  res.status(401).json({ success: false, error: 'TODO: implement authenticate' });
 }
 
 /**
@@ -39,16 +39,16 @@ function notFoundHandler(req, res) {
 }
 
 function errorHandler(err, req, res, next) {
-  console.error("[ERROR]", err.message);
+  console.error('[ERROR]', err.message);
 
-  if (err.type === "entity.parse.failed") {
-    return res.status(400).json({ success: false, error: "Invalid JSON" });
+  if (err.type === 'entity.parse.failed') {
+    return res.status(400).json({ success: false, error: 'Invalid JSON' });
   }
 
   res.status(err.statusCode || 500).json({
     success: false,
-    error: err.message || "Internal Server Error",
-    ...(process.env.NODE_ENV === "development" && { stack: err.stack }),
+    error: err.message || 'Internal Server Error',
+    ...(process.env.NODE_ENV === 'development' && { stack: err.stack }),
   });
 }
 

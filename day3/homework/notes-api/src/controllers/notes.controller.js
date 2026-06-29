@@ -1,4 +1,4 @@
-const notesService = require("../services/notes.service");
+const notesService = require('../services/notes.service');
 
 /**
  * TODO: Implement getMyNotes
@@ -11,7 +11,7 @@ const notesService = require("../services/notes.service");
 async function getMyNotes(req, res, next) {
   try {
     // TODO: implement
-    res.json({ message: "TODO: implement getMyNotes" });
+    res.json({ message: 'TODO: implement getMyNotes' });
   } catch (err) {
     next(err);
   }
@@ -27,7 +27,7 @@ async function getMyNotes(req, res, next) {
 async function getNoteById(req, res, next) {
   try {
     // TODO: implement
-    res.json({ message: "TODO: implement getNoteById" });
+    res.json({ message: 'TODO: implement getNoteById' });
   } catch (err) {
     next(err);
   }
@@ -42,7 +42,7 @@ async function getNoteById(req, res, next) {
 async function createNote(req, res, next) {
   try {
     // TODO: implement
-    res.json({ message: "TODO: implement createNote" });
+    res.json({ message: 'TODO: implement createNote' });
   } catch (err) {
     next(err);
   }
@@ -57,7 +57,7 @@ async function createNote(req, res, next) {
 async function updateNote(req, res, next) {
   try {
     // TODO: implement
-    res.json({ message: "TODO: implement updateNote" });
+    res.json({ message: 'TODO: implement updateNote' });
   } catch (err) {
     next(err);
   }
@@ -72,7 +72,7 @@ async function updateNote(req, res, next) {
 async function deleteNote(req, res, next) {
   try {
     // TODO: implement
-    res.json({ message: "TODO: implement deleteNote" });
+    res.json({ message: 'TODO: implement deleteNote' });
   } catch (err) {
     next(err);
   }
@@ -87,7 +87,7 @@ async function deleteNote(req, res, next) {
 async function getAllNotes(req, res, next) {
   try {
     // TODO: implement
-    res.json({ message: "TODO: implement getAllNotes (admin)" });
+    res.json({ message: 'TODO: implement getAllNotes (admin)' });
   } catch (err) {
     next(err);
   }

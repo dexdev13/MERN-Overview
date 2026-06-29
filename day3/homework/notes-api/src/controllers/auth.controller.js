@@ -1,4 +1,4 @@
-const authService = require("../services/auth.service");
+const authService = require('../services/auth.service');
 
 /**
  * TODO: Implement register controller
@@ -9,7 +9,7 @@ const authService = require("../services/auth.service");
 async function register(req, res, next) {
   try {
     // TODO: implement
-    res.json({ message: "TODO: implement register controller" });
+    res.json({ message: 'TODO: implement register controller' });
   } catch (err) {
     next(err);
   }
@@ -24,7 +24,7 @@ async function register(req, res, next) {
 async function login(req, res, next) {
   try {
     // TODO: implement
-    res.json({ message: "TODO: implement login controller" });
+    res.json({ message: 'TODO: implement login controller' });
   } catch (err) {
     next(err);
   }

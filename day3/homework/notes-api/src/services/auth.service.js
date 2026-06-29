@@ -1,6 +1,6 @@
-const bcrypt = require("bcrypt");
-const jwt = require("jsonwebtoken");
-const store = require("../data/store");
+const bcrypt = require('bcrypt');
+const jwt = require('jsonwebtoken');
+const store = require('../data/store');
 
 /**
  * TODO: Implement register({ name, email, password })
@@ -13,7 +13,7 @@ const store = require("../data/store");
  */
 async function register({ name, email, password }) {
   // TODO: implement
-  throw new Error("TODO: implement register");
+  throw new Error('TODO: implement register');
 }
 
 /**
@@ -30,7 +30,7 @@ async function register({ name, email, password }) {
  */
 async function login({ email, password }) {
   // TODO: implement
-  throw new Error("TODO: implement login");
+  throw new Error('TODO: implement login');
 }
 
 module.exports = { register, login };

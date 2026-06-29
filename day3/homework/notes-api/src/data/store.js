@@ -23,7 +23,7 @@ const users_findById = (id) => {
   return undefined;
 };
 
-const users_create = ({ name, email, hashedPassword, role = "user" }) => {
+const users_create = ({ name, email, hashedPassword, role = 'user' }) => {
   // TODO: tạo user mới, push vào array, return user (bao gồm password hash)
   return null;
 };
@@ -73,13 +73,13 @@ const notes_remove = (id) => {
 
 // Seed admin khi import lần đầu (gọi từ app startup)
 const seedAdmin = async () => {
-  const bcrypt = require("bcrypt");
-  const hashedPassword = await bcrypt.hash("Admin@123", 10);
+  const bcrypt = require('bcrypt');
+  const hashedPassword = await bcrypt.hash('Admin@123', 10);
   const admin = users_create({
-    name: "Admin",
-    email: "admin@example.com",
+    name: 'Admin',
+    email: 'admin@example.com',
     hashedPassword,
-    role: "admin",
+    role: 'admin',
   });
   console.log(`Admin seeded: admin@example.com / Admin@123 (id: ${admin?.id})`);
 };
