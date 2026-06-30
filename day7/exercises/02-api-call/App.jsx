@@ -67,11 +67,74 @@ function PostSkeleton() {
 //   //       body preview: post.body.slice(0, 100) + "..."
 // }
 
+function PostList() {
+  const [posts, setPosts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [retryCount, setRetryCount] = useState(0);
+
+  useEffect(() => {
+    async function fetchPosts() {
+      try {
+        setLoading(true);
+        setError(null);
+
+        const res = await fetch('https://jsonplaceholder.typicode.com/posts');
+
+        if (!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+
+        const data = await res.json();
+        setPosts(data);
+      } catch (err) {
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchPosts();
+  }, [retryCount]);
+
+  if (loading) {
+    return (
+      <div>
+        <PostSkeleton />
+        <PostSkeleton />
+        <PostSkeleton />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div>
+        <p style={{ color: 'red' }}>Lỗi: {error}</p>
+        <button onClick={() => setRetryCount((c) => c + 1)}>Thử lại</button>
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      {posts.map((post) => (
+        <div
+          key={post.id}
+          style={{ border: '1px solid #ddd', padding: 16, marginBottom: 8, borderRadius: 4 }}
+        >
+          <h3 style={{ margin: '0 0 8px' }}>{post.title}</h3>
+          <p style={{ margin: 0, color: '#555', fontSize: 14 }}>{post.body.slice(0, 100)}...</p>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function App() {
   return (
     <div style={{ maxWidth: 600, margin: '0 auto', padding: 16 }}>
       <h1>Posts</h1>
       {/* TODO: Render PostList */}
+      <PostList />
     </div>
   );
 }

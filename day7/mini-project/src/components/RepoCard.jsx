@@ -59,7 +59,14 @@ function RepoCard({ repo }) {
       {repo.description && <div className="repo-description">{repo.description}</div>}
       <div className="repo-meta">
         {/* TODO: thêm ngôn ngữ, stars, forks */}
-        <span>⭐ {repo.stargazers_count}</span>
+        {repo.language && (
+          <span className="repo-lang">
+            <span className="lang-dot" />
+            {repo.language}
+          </span>
+        )}
+        <span>⭐ {repo.stargazers_count.toLocaleString()}</span>
+        <span>🍴 {repo.forks_count.toLocaleString()}</span>
       </div>
     </a>
   );

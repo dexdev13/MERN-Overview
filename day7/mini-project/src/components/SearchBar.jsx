@@ -38,14 +38,25 @@ import { useState } from 'react';
 
 function SearchBar({ onSearch, inputRef }) {
   // TODO: implement
+  const [inputValue, setInputValue] = useState('');
+
+  function handleSubmit() {
+    onSearch(inputValue);
+  }
+
   return (
     <div className="search-bar">
       <input
         ref={inputRef}
         type="text"
         placeholder="Nhập GitHub username... (vd: torvalds, gaearon)"
+        value={inputValue}
+        onChange={(e) => setInputValue(e.target.value)}
+        onKeyDown={(e) => e.key === 'Enter' && handleSubmit()}
       />
-      <button disabled>Tìm kiếm</button>
+      <button onClick={handleSubmit} disabled={!inputValue.trim()}>
+        Tìm kiếm
+      </button>
     </div>
   );
 }

@@ -96,11 +96,122 @@ const styles = {
 //     }
 //   }
 
+function CreatePostForm() {
+  const [formData, setFormData] = useState({ title: '', body: '', userId: '' });
+  const [errors, setErrors] = useState({});
+  const [submitting, setSubmitting] = useState(false);
+  const [result, setResult] = useState(null);
+
+  function handleChange(e) {
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
+    if (errors[name]) setErrors((prev) => ({ ...prev, [name]: '' }));
+  }
+
+  function validate() {
+    const newErrors = {};
+    if (!formData.title.trim()) newErrors.title = 'Tiêu đề không được để trống';
+    else if (formData.title.trim().length < 5) newErrors.title = 'Tiêu đề phải có ít nhất 5 ký tự';
+    if (!formData.body.trim()) newErrors.body = 'Nội dung không được để trống';
+    else if (formData.body.trim().length < 10) newErrors.body = 'Nội dung phải có ít nhất 10 ký tự';
+    if (!formData.userId) newErrors.userId = 'Chọn người dùng';
+    return newErrors;
+  }
+
+  async function handleSubmit(e) {
+    e.preventDefault();
+    const validationErrors = validate();
+    if (Object.keys(validationErrors).length > 0) {
+      setErrors(validationErrors);
+      return;
+    }
+    setSubmitting(true);
+    try {
+      const res = await fetch('https://jsonplaceholder.typicode.com/posts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: formData.title,
+          body: formData.body,
+          userId: Number(formData.userId),
+        }),
+      });
+      if (!res.ok) throw new Error('Tạo post thất bại');
+      const data = await res.json();
+      setResult(data);
+      setFormData({ title: '', body: '', userId: '' });
+    } catch (err) {
+      setErrors({ submit: err.message });
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  return (
+    <form onSubmit={handleSubmit} style={styles.form}>
+      <div style={styles.field}>
+        <label style={styles.label}>Tiêu đề</label>
+        <input
+          name="title"
+          value={formData.title}
+          onChange={handleChange}
+          style={styles.input}
+          placeholder="Nhập tiêu đề..."
+        />
+        {errors.title && <p style={styles.error}>{errors.title}</p>}
+      </div>
+
+      <div style={styles.field}>
+        <label style={styles.label}>Nội dung</label>
+        <textarea
+          name="body"
+          value={formData.body}
+          onChange={handleChange}
+          style={styles.textarea}
+          placeholder="Nhập nội dung..."
+        />
+        {errors.body && <p style={styles.error}>{errors.body}</p>}
+      </div>
+
+      <div style={styles.field}>
+        <label style={styles.label}>Người dùng</label>
+        <select name="userId" value={formData.userId} onChange={handleChange} style={styles.select}>
+          <option value="">-- Chọn người dùng --</option>
+          {Array.from({ length: 10 }, (_, i) => (
+            <option key={i + 1} value={i + 1}>
+              User {i + 1}
+            </option>
+          ))}
+        </select>
+        {errors.userId && <p style={styles.error}>{errors.userId}</p>}
+      </div>
+
+      {errors.submit && <p style={styles.error}>{errors.submit}</p>}
+
+      <button
+        type="submit"
+        disabled={submitting}
+        style={{ padding: '10px 20px', cursor: submitting ? 'not-allowed' : 'pointer' }}
+      >
+        {submitting ? 'Đang gửi...' : 'Tạo bài viết'}
+      </button>
+
+      {result && (
+        <div style={styles.success}>
+          <strong>Tạo thành công!</strong>
+          <pre style={{ fontSize: 13 }}>{JSON.stringify(result, null, 2)}</pre>
+        </div>
+      )}
+    </form>
+  );
+}
+
 function App() {
   return (
     <div style={{ padding: 24 }}>
       <h1>Tạo bài viết mới</h1>
       {/* TODO: Render CreatePostForm */}
+      <CreatePostForm />
     </div>
   );
 }

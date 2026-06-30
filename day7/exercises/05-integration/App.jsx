@@ -84,16 +84,44 @@ function PostManager() {
 
   // TODO: Effect 1 — Fetch posts khi mount
   // GET https://jsonplaceholder.typicode.com/posts?_limit=10
+  useEffect(() => {
+    async function fetchPosts() {
+      try {
+        const res = await fetch('https://jsonplaceholder.typicode.com/posts?_limit=10');
+        if (!res.ok) throw new Error('Fetch posts thất bại');
+        const data = await res.json();
+        setPosts(data);
+      } catch (err) {
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchPosts();
+  }, []);
 
   // TODO: Effect 2 — Fetch comments khi selectedPost thay đổi
   // Nếu selectedPost null: setComments([]), return
   // GET https://jsonplaceholder.typicode.com/posts/${selectedPost.id}/comments
+  useEffect(() => {
+    if (!selectedPost) {
+      setComments([]);
+      return;
+    }
+    setCommentsLoading(true);
+    fetch(`https://jsonplaceholder.typicode.com/posts/${selectedPost.id}/comments`)
+      .then((res) => res.json())
+      .then((data) => setComments(data))
+      .catch(() => setComments([]))
+      .finally(() => setCommentsLoading(false));
+  }, [selectedPost]);
 
   // TODO: filteredPosts — useMemo
   // filter posts theo search (case-insensitive, theo title)
   const filteredPosts = useMemo(() => {
     // TODO: implement
-    return posts;
+    if (!search.trim()) return posts;
+    return posts.filter((p) => p.title.toLowerCase().includes(search.toLowerCase()));
   }, [posts, search]);
 
   // TODO: handleDelete — useCallback
@@ -102,6 +130,9 @@ function PostManager() {
   const handleDelete = useCallback((postId) => {
     // TODO: implement
     // fetch DELETE, rồi setPosts(prev => prev.filter(p => p.id !== postId))
+    fetch(`https://jsonplaceholder.typicode.com/posts/${postId}`, { method: 'DELETE' }).then(() =>
+      setPosts((prev) => prev.filter((p) => p.id !== postId)),
+    );
   }, []);
 
   // TODO: handleCreate — useCallback
@@ -112,6 +143,20 @@ function PostManager() {
     async (e) => {
       e.preventDefault();
       // TODO: implement
+      if (!formTitle.trim()) return;
+      setSubmitting(true);
+      try {
+        const res = await fetch('https://jsonplaceholder.typicode.com/posts', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ title: formTitle, body: 'New post body.', userId: 1 }),
+        });
+        const newPost = await res.json();
+        setPosts((prev) => [newPost, ...prev]);
+        setFormTitle('');
+      } finally {
+        setSubmitting(false);
+      }
     },
     [formTitle],
   );

@@ -59,6 +59,39 @@ import { useState, useEffect } from 'react';
 //   );
 // }
 
+function LifecycleDemo() {
+  console.log('Render');
+
+  const [count, setCount] = useState(0);
+
+  // Effect 1: chỉ chạy khi mount
+  useEffect(() => {
+    document.title = 'LifecycleDemo loaded';
+    console.log('Component mounted');
+
+    return () => {
+      document.title = 'React App';
+      console.log('Component unmounted');
+    };
+  }, []);
+
+  // Effect 2: chạy khi count thay đổi
+  useEffect(() => {
+    console.log('Count updated:', count);
+
+    return () => {
+      console.log('Cleanup count effect');
+    };
+  }, [count]);
+
+  return (
+    <div style={{ border: '1px solid #ddd', padding: 16, borderRadius: 4, marginTop: 16 }}>
+      <p>Count: {count}</p>
+      <button onClick={() => setCount((c) => c + 1)}>Tăng count</button>
+    </div>
+  );
+}
+
 // Wrapper để demo mount/unmount
 function App() {
   const [show, setShow] = useState(true);
