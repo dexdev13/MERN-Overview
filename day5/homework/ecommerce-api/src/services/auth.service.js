@@ -53,7 +53,16 @@ function generateToken(user) {
  */
 async function register(data) {
   // TODO AUTH-1
-  throw new Error('Not implemented');
+  const existingUser = await User.findByEmail(data.email);
+  if (existingUser) {
+    const err = new Error('Email already in use');
+    err.statusCode = 409;
+    throw err;
+  }
+
+  const user = await User.create(data);
+  const token = generateToken(user);
+  return { user: user.toSafeObject(), token };
 }
 
 // ─── Login ────────────────────────────────────────────────────────────────────
@@ -82,7 +91,28 @@ async function register(data) {
  */
 async function login({ email, password }) {
   // TODO AUTH-2
-  throw new Error('Not implemented');
+  const user = await User.findByEmail(email);
+  if (!user) {
+    const err = new Error('Invalid credentials');
+    err.statusCode = 401;
+    throw err;
+  }
+
+  const isMatch = await user.comparePassword(password);
+  if (!isMatch) {
+    const err = new Error('Invalid credentials');
+    err.statusCode = 401;
+    throw err;
+  }
+
+  if (!user.isActive) {
+    const err = new Error('Account is deactivated');
+    err.statusCode = 403;
+    throw err;
+  }
+
+  const token = generateToken(user);
+  return { user: user.toSafeObject(), token };
 }
 
 // ─── Get Current User ─────────────────────────────────────────────────────────
@@ -105,7 +135,13 @@ async function login({ email, password }) {
  */
 async function getMe(userId) {
   // TODO AUTH-3
-  throw new Error('Not implemented');
+  const user = await User.findById(userId);
+  if (!user) {
+    const err = new Error('User not found');
+    err.statusCode = 404;
+    throw err;
+  }
+  return user.toSafeObject();
 }
 
 module.exports = { register, login, getMe };

@@ -85,13 +85,13 @@ app.get('/users/:id', async (req, res, next) => {
   try {
     const user = await User.findById(req.params.id);
     // TODO 3.4: Nếu user === null, throw error với statusCode 404
-    // Gợi ý:
-    //   if (!user) {
-    //     const err = new Error("User not found");
-    //     err.statusCode = 404;
-    //     throw err; // hoặc return next(err);
-    //   }
-    // Câu hỏi: tại sao findById không tự throw 404 mà trả về null?
+    // findById trả về null thay vì throw vì "không tìm thấy" không phải lỗi DB —
+    // đây là business logic, mỗi ứng dụng xử lý khác nhau.
+    if (!user) {
+      const err = new Error('User not found');
+      err.statusCode = 404;
+      throw err;
+    }
 
     res.json({ success: true, data: user });
   } catch (err) {
@@ -257,14 +257,45 @@ app.delete('/users/:id', async (req, res, next) => {
 
 // TODO 3.5 — Error Handler Middleware:
 app.use((err, req, res, next) => {
-  // Implement error handling logic ở đây
-  // Hiện tại: pass-through để thấy raw error (xấu)
-  console.error(err);
-  res.status(500).json({
-    success: false,
-    error: err.message, // BAD: expose internal error message
-    // Sau khi implement TODO 3.1-3.3, xóa dòng này và thêm logic đúng
-  });
+  let statusCode = 500;
+  let message = 'Internal Server Error';
+  let details = null;
+  let isMongooseError = false;
+
+  // TODO 3.1: CastError — invalid ObjectId
+  if (err.name === 'CastError' && err.kind === 'ObjectId') {
+    statusCode = 400;
+    message = `Invalid ID format: "${err.value}"`;
+    isMongooseError = true;
+  }
+  // TODO 3.2: ValidationError — schema validation failed
+  else if (err.name === 'ValidationError') {
+    statusCode = 400;
+    message = 'Validation failed';
+    details = Object.values(err.errors).map((e) => ({
+      field: e.path,
+      message: e.message,
+    }));
+    isMongooseError = true;
+  }
+  // TODO 3.3: Duplicate key — unique index violation
+  else if (err.code === 11000) {
+    statusCode = 409;
+    const field = Object.keys(err.keyValue)[0];
+    message = `${field} already exists`;
+    isMongooseError = true;
+  }
+  // Custom errors (có statusCode) — throw từ route handlers
+  else if (err.statusCode) {
+    statusCode = err.statusCode;
+    message = err.message;
+  }
+
+  const response = { success: false, error: message };
+  if (details) response.details = details;
+  if (process.env.NODE_ENV === 'development') response.stack = err.stack;
+
+  res.status(statusCode).json(response);
 });
 
 // ─── Server startup ───────────────────────────────────────────────────────────

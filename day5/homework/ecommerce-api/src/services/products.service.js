@@ -7,6 +7,7 @@
 
 'use strict';
 
+const mongoose = require('mongoose');
 const Product = require('../models/Product');
 const Category = require('../models/Category');
 
@@ -42,7 +43,36 @@ const Category = require('../models/Category');
  */
 async function getProducts(filters = {}, options = {}) {
   // TODO PROD-1
-  throw new Error('Not implemented');
+  const page = parseInt(options.page) || 1;
+  const limit = parseInt(options.limit) || 10;
+  const sort = options.sort || '-createdAt';
+  const skip = (page - 1) * limit;
+
+  const query = {};
+  if (filters.category) query.category = filters.category;
+  if (filters.minPrice || filters.maxPrice) {
+    query.price = {};
+    if (filters.minPrice) query.price.$gte = Number(filters.minPrice);
+    if (filters.maxPrice) query.price.$lte = Number(filters.maxPrice);
+  }
+  if (filters.search) query.name = { $regex: filters.search, $options: 'i' };
+
+  const [data, total] = await Promise.all([
+    Product.find(query).populate('category', 'name slug').sort(sort).skip(skip).limit(limit),
+    Product.countDocuments(query),
+  ]);
+
+  return {
+    data,
+    pagination: {
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+      hasNext: page < Math.ceil(total / limit),
+      hasPrev: page > 1,
+    },
+  };
 }
 
 // ─── Get Product by ID ────────────────────────────────────────────────────────
@@ -64,7 +94,13 @@ async function getProducts(filters = {}, options = {}) {
  */
 async function getById(id) {
   // TODO PROD-2
-  throw new Error('Not implemented');
+  const product = await Product.findById(id).populate('category', 'name slug description');
+  if (!product) {
+    const err = new Error('Product not found');
+    err.statusCode = 404;
+    throw err;
+  }
+  return product;
 }
 
 // ─── Create Product ───────────────────────────────────────────────────────────
@@ -89,7 +125,15 @@ async function getById(id) {
  */
 async function create(data) {
   // TODO PROD-3
-  throw new Error('Not implemented');
+  const category = await Category.findById(data.category);
+  if (!category) {
+    const err = new Error('Category not found');
+    err.statusCode = 400;
+    throw err;
+  }
+
+  const product = await Product.create(data);
+  return product.populate('category', 'name slug');
 }
 
 // ─── Update Product ───────────────────────────────────────────────────────────
@@ -114,7 +158,25 @@ async function create(data) {
  */
 async function update(id, data) {
   // TODO PROD-4
-  throw new Error('Not implemented');
+  const product = await Product.findById(id);
+  if (!product) {
+    const err = new Error('Product not found');
+    err.statusCode = 404;
+    throw err;
+  }
+
+  if (data.category && data.category.toString() !== product.category.toString()) {
+    const category = await Category.findById(data.category);
+    if (!category) {
+      const err = new Error('Category not found');
+      err.statusCode = 400;
+      throw err;
+    }
+  }
+
+  Object.assign(product, data);
+  await product.save();
+  return product.populate('category', 'name slug');
 }
 
 // ─── Delete Product (soft delete) ────────────────────────────────────────────
@@ -137,7 +199,16 @@ async function update(id, data) {
  */
 async function softDelete(id) {
   // TODO PROD-5
-  throw new Error('Not implemented');
+  const product = await Product.findById(id);
+  if (!product) {
+    const err = new Error('Product not found');
+    err.statusCode = 404;
+    throw err;
+  }
+
+  product.isActive = false;
+  await product.save();
+  return { message: 'Product deleted' };
 }
 
 // ─── Add Rating ───────────────────────────────────────────────────────────────
@@ -169,7 +240,24 @@ async function softDelete(id) {
  */
 async function addRating(id, userId, ratingData) {
   // TODO PROD-6
-  throw new Error('Not implemented');
+  const product = await Product.findById(id);
+  if (!product) {
+    const err = new Error('Product not found');
+    err.statusCode = 404;
+    throw err;
+  }
+
+  const existingIndex = product.ratings.findIndex((r) => r.user.toString() === userId.toString());
+
+  if (existingIndex >= 0) {
+    product.ratings[existingIndex].score = ratingData.score;
+    if (ratingData.review !== undefined) product.ratings[existingIndex].review = ratingData.review;
+  } else {
+    product.ratings.push({ user: userId, score: ratingData.score, review: ratingData.review });
+  }
+
+  await product.save();
+  return product;
 }
 
 // ─── Get Stats (Aggregation) ──────────────────────────────────────────────────
@@ -209,7 +297,74 @@ async function addRating(id, userId, ratingData) {
  */
 async function getStats(id) {
   // TODO PROD-7
-  throw new Error('Not implemented');
+  const objectId = new mongoose.Types.ObjectId(id);
+
+  const result = await Product.aggregate([
+    { $match: { _id: objectId } },
+    {
+      $project: {
+        name: 1,
+        ratings: 1,
+        totalRatings: { $size: { $ifNull: ['$ratings', []] } },
+        avgRating: {
+          $cond: {
+            if: { $gt: [{ $size: { $ifNull: ['$ratings', []] } }, 0] },
+            then: { $round: [{ $avg: '$ratings.score' }, 1] },
+            else: 0,
+          },
+        },
+      },
+    },
+    {
+      $project: {
+        name: 1,
+        totalRatings: 1,
+        avgRating: 1,
+        ratingDistribution: {
+          1: {
+            $size: {
+              $filter: { input: { $ifNull: ['$ratings', []] }, cond: { $eq: ['$$this.score', 1] } },
+            },
+          },
+          2: {
+            $size: {
+              $filter: { input: { $ifNull: ['$ratings', []] }, cond: { $eq: ['$$this.score', 2] } },
+            },
+          },
+          3: {
+            $size: {
+              $filter: { input: { $ifNull: ['$ratings', []] }, cond: { $eq: ['$$this.score', 3] } },
+            },
+          },
+          4: {
+            $size: {
+              $filter: { input: { $ifNull: ['$ratings', []] }, cond: { $eq: ['$$this.score', 4] } },
+            },
+          },
+          5: {
+            $size: {
+              $filter: { input: { $ifNull: ['$ratings', []] }, cond: { $eq: ['$$this.score', 5] } },
+            },
+          },
+        },
+      },
+    },
+  ]);
+
+  if (!result.length) {
+    const err = new Error('Product not found');
+    err.statusCode = 404;
+    throw err;
+  }
+
+  const stat = result[0];
+  return {
+    productId: id,
+    name: stat.name,
+    totalRatings: stat.totalRatings,
+    avgRating: stat.avgRating,
+    ratingDistribution: stat.ratingDistribution,
+  };
 }
 
 module.exports = {

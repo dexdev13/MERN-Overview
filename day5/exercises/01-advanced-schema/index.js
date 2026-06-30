@@ -90,6 +90,18 @@ const userSchema = new mongoose.Schema(
 // YOUR ANSWER:
 
 // TODO 1.1 — Implement pre("save") hook bên dưới dòng này:
+// pre("save") KHÔNG chạy khi dùng findByIdAndUpdate() vì findByIdAndUpdate()
+// gọi thẳng xuống DB driver mà không tạo Document instance, nên Mongoose hooks không kích hoạt.
+
+userSchema.pre('save', async function (next) {
+  if (!this.isModified('password')) return next();
+  try {
+    this.password = await bcrypt.hash(this.password, 10);
+    next();
+  } catch (err) {
+    next(err);
+  }
+});
 
 // ─── TODO 1.2: Instance method — comparePassword() ───────────────────────────
 //
@@ -109,6 +121,12 @@ const userSchema = new mongoose.Schema(
 // YOUR ANSWER:
 
 // TODO 1.2 — Implement instance method bên dưới:
+// bcrypt dùng salt ngẫu nhiên khi hash, nên cùng plaintext cho ra hash khác nhau mỗi lần.
+// bcrypt.compare() biết cách extract salt từ hash để so sánh đúng.
+
+userSchema.methods.comparePassword = async function (plaintext) {
+  return bcrypt.compare(plaintext, this.password);
+};
 
 // ─── TODO 1.3: Static method — findByEmail() ─────────────────────────────────
 //
@@ -127,6 +145,12 @@ const userSchema = new mongoose.Schema(
 // YOUR ANSWER:
 
 // TODO 1.3 — Implement static method bên dưới:
+// findByEmail là static vì nó tìm kiếm trên toàn collection (không gắn với instance cụ thể).
+// Instance methods chỉ dùng được sau khi đã có document. Static dùng trên Model.
+
+userSchema.statics.findByEmail = function (email) {
+  return this.findOne({ email: email.toLowerCase() });
+};
 
 // ─── TODO 1.4: Virtual — fullName ─────────────────────────────────────────────
 //
@@ -148,6 +172,13 @@ const userSchema = new mongoose.Schema(
 // YOUR ANSWER:
 
 // TODO 1.4 — Implement virtual bên dưới:
+// toJSON: { virtuals: true } → virtuals xuất hiện khi res.json() / JSON.stringify().
+// toObject: { virtuals: true } → virtuals xuất hiện khi gọi .toObject() trong code.
+// Cần cả hai để virtual hoạt động trong mọi ngữ cảnh.
+
+userSchema.virtual('fullName').get(function () {
+  return `${this.firstName} ${this.lastName}`;
+});
 
 // ─── Model ────────────────────────────────────────────────────────────────────
 
@@ -195,6 +226,58 @@ const User = mongoose.model('User', userSchema);
 //   runTests().catch(console.error);
 
 // TODO 1.5 — Implement test function bên dưới:
+
+async function runTests() {
+  await mongoose.connect(process.env.MONGODB_URI);
+  await User.deleteMany({});
+  console.log('Clean slate\n');
+
+  console.log('=== Test 1: Create User ===');
+  const user = await User.create({
+    firstName: 'Alice',
+    lastName: 'Nguyen',
+    email: 'alice@example.com',
+    password: 'password123',
+  });
+  console.log('password (should be bcrypt hash):', user.password);
+  console.log('fullName (virtual):', user.fullName);
+  const json = user.toJSON();
+  console.log('toJSON has fullName:', !!json.fullName, '| has __v:', json.__v !== undefined);
+
+  console.log('\n=== Test 2: comparePassword ===');
+  console.log('correct password:', await user.comparePassword('password123'));
+  console.log('wrong password:', await user.comparePassword('wrongpassword'));
+
+  console.log('\n=== Test 3: Static method findByEmail ===');
+  const found = await User.findByEmail('alice@example.com');
+  console.log('findByEmail found:', found?.email);
+  const foundUpper = await User.findByEmail('ALICE@EXAMPLE.COM');
+  console.log('findByEmail (uppercase) found:', foundUpper?.email);
+
+  console.log('\n=== Test 4: Update password (hook re-runs) ===');
+  const fetched = await User.findById(user._id);
+  fetched.password = 'newpassword456';
+  await fetched.save();
+  console.log('new password match:', await fetched.comparePassword('newpassword456'));
+  console.log('old password no longer works:', await fetched.comparePassword('password123'));
+
+  console.log('\n=== Test 5: Duplicate email ===');
+  try {
+    await User.create({
+      firstName: 'Bob',
+      lastName: 'Tran',
+      email: 'alice@example.com',
+      password: 'password123',
+    });
+  } catch (err) {
+    console.log('duplicate error code:', err.code, '(expected: 11000)');
+  }
+
+  await mongoose.disconnect();
+  console.log('\nAll tests done.');
+}
+
+runTests().catch(console.error);
 
 // ─────────────────────────────────────────────────────────────────────────────
 // CÂUHỎI TƯ DUY (trả lời bằng comment trước khi nộp bài)

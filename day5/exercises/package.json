@@ -1,0 +1,16 @@
+{
+  "name": "day5-exercises",
+  "version": "1.0.0",
+  "description": "Day 5 exercises: Advanced schema, aggregation, error handling",
+  "scripts": {
+    "ex1": "node 01-advanced-schema/index.js",
+    "ex2": "node 02-aggregation/index.js",
+    "ex3": "node 03-error-handling/index.js"
+  },
+  "dependencies": {
+    "bcrypt": "^5.1.1",
+    "dotenv": "^16.3.1",
+    "express": "^4.18.2",
+    "mongoose": "^8.0.3"
+  }
+}

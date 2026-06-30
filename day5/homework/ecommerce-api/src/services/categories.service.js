@@ -23,7 +23,7 @@ const Product = require('../models/Product');
  */
 async function getAll() {
   // TODO CAT-1
-  throw new Error('Not implemented');
+  return Category.find().sort({ name: 1 });
 }
 
 // ─── Get Category by ID ───────────────────────────────────────────────────────
@@ -41,7 +41,13 @@ async function getAll() {
  */
 async function getById(id) {
   // TODO CAT-2
-  throw new Error('Not implemented');
+  const category = await Category.findById(id);
+  if (!category) {
+    const err = new Error('Category not found');
+    err.statusCode = 404;
+    throw err;
+  }
+  return category;
 }
 
 // ─── Create Category ──────────────────────────────────────────────────────────
@@ -63,7 +69,7 @@ async function getById(id) {
  */
 async function create(data) {
   // TODO CAT-3
-  throw new Error('Not implemented');
+  return Category.create({ name: data.name, description: data.description });
 }
 
 // ─── Update Category ──────────────────────────────────────────────────────────
@@ -85,7 +91,16 @@ async function create(data) {
  */
 async function update(id, data) {
   // TODO CAT-4
-  throw new Error('Not implemented');
+  const category = await Category.findById(id);
+  if (!category) {
+    const err = new Error('Category not found');
+    err.statusCode = 404;
+    throw err;
+  }
+
+  Object.assign(category, data);
+  await category.save();
+  return category;
 }
 
 // ─── Delete Category ──────────────────────────────────────────────────────────
@@ -110,7 +125,21 @@ async function update(id, data) {
  */
 async function deleteCategory(id) {
   // TODO CAT-5
-  throw new Error('Not implemented');
+  const count = await Product.countDocuments({ category: id });
+  if (count > 0) {
+    const err = new Error(`Cannot delete category with existing products (${count} products)`);
+    err.statusCode = 409;
+    throw err;
+  }
+
+  const deleted = await Category.findByIdAndDelete(id);
+  if (!deleted) {
+    const err = new Error('Category not found');
+    err.statusCode = 404;
+    throw err;
+  }
+
+  return { message: 'Category deleted' };
 }
 
 // ─── Get Products by Category ─────────────────────────────────────────────────
@@ -134,7 +163,9 @@ async function deleteCategory(id) {
  */
 async function getProductsByCategory(id, options = {}) {
   // TODO CAT-6
-  throw new Error('Not implemented');
+  const category = await getById(id);
+  const result = await Product.findByCategory(id, options);
+  return { category, ...result };
 }
 
 module.exports = {

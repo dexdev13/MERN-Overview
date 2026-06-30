@@ -65,7 +65,51 @@ const Product = require('../models/Product');
  */
 async function createOrder(customerId, data) {
   // TODO ORD-1
-  throw new Error('Not implemented');
+  const { items, shippingAddress, note } = data;
+
+  // 1. Fetch tất cả products song song và validate
+  const products = await Promise.all(items.map((item) => Product.findById(item.productId)));
+
+  for (let i = 0; i < items.length; i++) {
+    if (!products[i]) {
+      const err = new Error(`Product not found`);
+      err.statusCode = 400;
+      throw err;
+    }
+    if (products[i].stock < items[i].quantity) {
+      const err = new Error(`Insufficient stock for ${products[i].name}`);
+      err.statusCode = 400;
+      throw err;
+    }
+  }
+
+  // 2. Build order items với giá snapshot
+  const orderItems = items.map((item, index) => ({
+    product: products[index]._id,
+    quantity: item.quantity,
+    priceAtOrder: products[index].price,
+    productName: products[index].name,
+  }));
+
+  // 3. Tạo order
+  const order = await Order.create({
+    customer: customerId,
+    items: orderItems,
+    shippingAddress,
+    note,
+  });
+
+  // 4. Giảm stock
+  await Promise.all(
+    items.map((item, index) =>
+      Product.findByIdAndUpdate(products[index]._id, { $inc: { stock: -item.quantity } }),
+    ),
+  );
+
+  // 5. Populate và return
+  await order.populate('items.product', 'name price');
+  await order.populate('customer', 'firstName lastName email');
+  return order;
 }
 
 // ─── Get My Orders ────────────────────────────────────────────────────────────
@@ -95,7 +139,30 @@ async function createOrder(customerId, data) {
  */
 async function getMyOrders(customerId, options = {}) {
   // TODO ORD-2
-  throw new Error('Not implemented');
+  const page = parseInt(options.page) || 1;
+  const limit = parseInt(options.limit) || 10;
+  const skip = (page - 1) * limit;
+
+  const [data, total] = await Promise.all([
+    Order.find({ customer: customerId })
+      .populate('items.product', 'name price images')
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit),
+    Order.countDocuments({ customer: customerId }),
+  ]);
+
+  return {
+    data,
+    pagination: {
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+      hasNext: page < Math.ceil(total / limit),
+      hasPrev: page > 1,
+    },
+  };
 }
 
 // ─── Get Order by ID ──────────────────────────────────────────────────────────
@@ -121,7 +188,23 @@ async function getMyOrders(customerId, options = {}) {
  */
 async function getOrderById(id, requesterId, requesterRole) {
   // TODO ORD-3
-  throw new Error('Not implemented');
+  const order = await Order.findById(id)
+    .populate('items.product', 'name price images')
+    .populate('customer', 'firstName lastName email');
+
+  if (!order) {
+    const err = new Error('Order not found');
+    err.statusCode = 404;
+    throw err;
+  }
+
+  if (requesterRole !== 'admin' && order.customer._id.toString() !== requesterId.toString()) {
+    const err = new Error('You do not have permission to view this order');
+    err.statusCode = 403;
+    throw err;
+  }
+
+  return order;
 }
 
 // ─── Cancel Order ─────────────────────────────────────────────────────────────
@@ -158,7 +241,38 @@ async function getOrderById(id, requesterId, requesterRole) {
  */
 async function cancelOrder(id, customerId, reason) {
   // TODO ORD-4
-  throw new Error('Not implemented');
+  const order = await Order.findById(id);
+  if (!order) {
+    const err = new Error('Order not found');
+    err.statusCode = 404;
+    throw err;
+  }
+
+  if (order.customer.toString() !== customerId.toString()) {
+    const err = new Error("You don't have permission to cancel this order");
+    err.statusCode = 403;
+    throw err;
+  }
+
+  if (order.status !== 'pending') {
+    const err = new Error('Only pending orders can be cancelled');
+    err.statusCode = 400;
+    throw err;
+  }
+
+  order.status = 'cancelled';
+  order.cancelledAt = new Date();
+  order.cancelReason = reason;
+  await order.save();
+
+  // Hoàn trả stock
+  await Promise.all(
+    order.items.map((item) =>
+      Product.findByIdAndUpdate(item.product, { $inc: { stock: item.quantity } }),
+    ),
+  );
+
+  return order;
 }
 
 // ─── Get All Orders (admin) ───────────────────────────────────────────────────
@@ -191,7 +305,40 @@ async function cancelOrder(id, customerId, reason) {
  */
 async function getAllOrders(filters = {}, options = {}) {
   // TODO ORD-5
-  throw new Error('Not implemented');
+  const page = parseInt(options.page) || 1;
+  const limit = parseInt(options.limit) || 10;
+  const skip = (page - 1) * limit;
+
+  const query = {};
+  if (filters.status) query.status = filters.status;
+  if (filters.customerId) query.customer = filters.customerId;
+  if (filters.fromDate || filters.toDate) {
+    query.createdAt = {};
+    if (filters.fromDate) query.createdAt.$gte = new Date(filters.fromDate);
+    if (filters.toDate) query.createdAt.$lte = new Date(filters.toDate);
+  }
+
+  const [data, total] = await Promise.all([
+    Order.find(query)
+      .populate('customer', 'firstName lastName email')
+      .populate('items.product', 'name')
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit),
+    Order.countDocuments(query),
+  ]);
+
+  return {
+    data,
+    pagination: {
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+      hasNext: page < Math.ceil(total / limit),
+      hasPrev: page > 1,
+    },
+  };
 }
 
 module.exports = {

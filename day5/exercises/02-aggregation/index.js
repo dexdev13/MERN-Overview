@@ -191,8 +191,11 @@ async function postsByCategory() {
   // TODO 2.1 — Implement aggregation pipeline:
   const result = await Post.aggregate([
     // Stage 1: $group — group by category, count posts
+    { $group: { _id: '$category', count: { $sum: 1 } } },
     // Stage 2: $sort — sort by count desc
+    { $sort: { count: -1 } },
     // Stage 3: $project — rename _id to "category"
+    { $project: { _id: 0, category: '$_id', count: 1 } },
   ]);
 
   console.log('=== 2.1: Posts by Category ===');
@@ -219,8 +222,11 @@ async function avgViewsByCategory() {
   // TODO 2.2 — Implement aggregation pipeline:
   const result = await Post.aggregate([
     // Stage 1: $group — _id: category, avgViews: $avg of viewCount
+    { $group: { _id: '$category', avgViews: { $avg: '$viewCount' } } },
     // Stage 2: $sort — avgViews desc
+    { $sort: { avgViews: -1 } },
     // Stage 3: $project — rename fields, round avgViews
+    { $project: { _id: 0, category: '$_id', avgViews: { $round: ['$avgViews', 0] } } },
   ]);
 
   console.log('=== 2.2: Average Views by Category ===');
@@ -251,8 +257,26 @@ async function postsWithAuthors() {
   // TODO 2.3 — Implement aggregation pipeline:
   const result = await Post.aggregate([
     // Stage 1: $lookup — join với users collection
+    {
+      $lookup: {
+        from: 'users',
+        localField: 'author',
+        foreignField: '_id',
+        as: 'authorInfo',
+      },
+    },
     // Stage 2: $unwind — flatten authorInfo array
+    { $unwind: '$authorInfo' },
     // Stage 3: $project — chọn title, category, viewCount, author (name+email)
+    {
+      $project: {
+        _id: 0,
+        title: 1,
+        category: 1,
+        viewCount: 1,
+        author: { name: '$authorInfo.name', email: '$authorInfo.email' },
+      },
+    },
   ]);
 
   console.log('=== 2.3: Posts with Author Info ($lookup) ===');
@@ -282,10 +306,15 @@ async function topTags() {
   // TODO 2.4 — Implement aggregation pipeline:
   const result = await Post.aggregate([
     // Stage 1: $unwind — tách array tags
+    { $unwind: '$tags' },
     // Stage 2: $group — group by tag, count
+    { $group: { _id: '$tags', count: { $sum: 1 } } },
     // Stage 3: $sort — count desc
+    { $sort: { count: -1 } },
     // Stage 4: $limit — top 5
+    { $limit: 5 },
     // Stage 5: $project — rename fields
+    { $project: { _id: 0, tag: '$_id', count: 1 } },
   ]);
 
   console.log('=== 2.4: Top 5 Tags ===');
@@ -319,10 +348,15 @@ async function topPostsByLikes() {
   // TODO 2.5 — Implement aggregation pipeline:
   const result = await Post.aggregate([
     // Stage 1: $match — publishedAt >= thirtyDaysAgo
+    { $match: { publishedAt: { $gte: thirtyDaysAgo } } },
     // Stage 2: $addFields — likeCount = $size of likes array
+    { $addFields: { likeCount: { $size: '$likes' } } },
     // Stage 3: $sort — likeCount desc
+    { $sort: { likeCount: -1 } },
     // Stage 4: $limit — top 3
+    { $limit: 3 },
     // Stage 5: $project — title, likeCount, category, publishedAt
+    { $project: { _id: 0, title: 1, likeCount: 1, category: 1, publishedAt: 1 } },
   ]);
 
   console.log('=== 2.5: Top 3 Posts by Likes (last 30 days) ===');
@@ -374,27 +408,39 @@ async function userStats() {
   // TODO 2.6 Step 1 — Post stats per author:
   const postStats = await Post.aggregate([
     // group by author: postCount và totalViews
+    { $group: { _id: '$author', postCount: { $sum: 1 }, totalViews: { $sum: '$viewCount' } } },
     // lookup users để lấy name
+    { $lookup: { from: 'users', localField: '_id', foreignField: '_id', as: 'userInfo' } },
     // unwind, project
+    { $unwind: '$userInfo' },
+    { $project: { _id: 1, author: '$userInfo.name', postCount: 1, totalViews: 1 } },
   ]);
 
   // TODO 2.6 Step 2 — Comment count per post author:
   const commentStats = await Comment.aggregate([
     // lookup posts để biết post thuộc author nào
+    { $lookup: { from: 'posts', localField: 'post', foreignField: '_id', as: 'postInfo' } },
     // unwind posts
+    { $unwind: '$postInfo' },
     // group by post.author, count comments
+    { $group: { _id: '$postInfo.author', commentCount: { $sum: 1 } } },
   ]);
 
   // TODO 2.6 Step 3 — Merge kết quả trong JS:
-  // Hint: Dùng Map để lookup commentStats nhanh
-  //   const commentMap = new Map(commentStats.map(c => [c._id.toString(), c.commentCount]));
-  //   const merged = postStats.map(p => ({
-  //     ...p,
-  //     commentCount: commentMap.get(p._id.toString()) || 0
-  //   }));
+  const commentMap = new Map(commentStats.map((c) => [c._id.toString(), c.commentCount]));
+  const merged = postStats.map((p) => ({
+    author: p.author,
+    postCount: p.postCount,
+    totalViews: p.totalViews,
+    commentCount: commentMap.get(p._id.toString()) || 0,
+  }));
 
   console.log('=== 2.6: User Statistics ===');
-  // TODO: log merged results
+  merged.forEach((s) =>
+    console.log(
+      `  ${s.author}: posts=${s.postCount}, views=${s.totalViews}, comments=${s.commentCount}`,
+    ),
+  );
   console.log();
 }
 
